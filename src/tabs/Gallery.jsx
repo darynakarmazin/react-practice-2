@@ -8,22 +8,37 @@ export class Gallery extends Component {
     query: '',
     page: 1,
     images: [],
+    isLoading: false,
+    isShowButton: false,
   };
 
   componentDidUpdate(prevProps, prevState) {
     const { query, page } = this.state;
 
-    if (prevState.query !== query) {
+    if (prevState.query !== query || prevState.page !== page) {
       this.getImages(query, page);
     }
   }
 
   getImages = async (query, page) => {
-    const result = await ImageService.getImages(query, page);
-    this.setState(prevState => ({
-      images: [...prevState.images, ...result.photos],
-    }));
-    console.log(result);
+    this.setState({ isLoading: true });
+
+    try {
+      const {
+        total_results,
+        page: currentPage,
+        per_page,
+        photos,
+      } = await ImageService.getImages(query, page);
+      this.setState(prevState => ({
+        images: [...prevState.images, ...photos],
+        isShowButton: currentPage < Math.ceil(total_results / per_page),
+      }));
+    } catch (error) {
+      console.log(error);
+    } finally {
+      this.setState({ isLoading: false });
+    }
   };
 
   // componentDidMount() {
@@ -38,24 +53,34 @@ export class Gallery extends Component {
     // console.log(query);
   };
 
+  handleClickButton = () => {
+    this.setState(prevState => ({ page: prevState.page + 1 }));
+  };
+
   render() {
-    const { images } = this.state;
+    const { images, isLoading, isShowButton } = this.state;
     console.log(images);
+    const isShowImages = images.length > 0;
     return (
       <>
         <SearchForm onSubmit={this.handleSubmit} />
-        <Grid>
-          {images.map(({ id, src: { small }, alt }) => {
-            return (
-              <GridItem key={id}>
-                <CardItem>
-                  <img src={small} alt={alt} />
-                </CardItem>
-              </GridItem>
-            );
-          })}
-        </Grid>
-        <Text textAlign="center">Sorry. There are no images ... 😭</Text>
+        {isShowImages && (
+          <Grid>
+            {images.map(({ id, src: { small }, alt }) => {
+              return (
+                <GridItem key={id}>
+                  <CardItem>
+                    <img src={small} alt={alt} />
+                  </CardItem>
+                </GridItem>
+              );
+            })}
+          </Grid>
+        )}
+        {isLoading && <Text textAlign="center">Loading...</Text>}
+        {isShowButton && (
+          <Button onClick={this.handleClickButton}>Load more</Button>
+        )}
       </>
     );
   }
