@@ -21,7 +21,7 @@ export class Gallery extends Component {
   getImages = async (query, page) => {
     const result = await ImageService.getImages(query, page);
     this.setState(prevState => ({
-      images: [...prevState.images, result.photos],
+      images: [...prevState.images, ...result.photos],
     }));
     console.log(result);
   };
@@ -30,15 +30,31 @@ export class Gallery extends Component {
   //   ImageService.getImages('dog', 1);
   // }
 
-  handleSumit = query => {
+  handleSubmit = query => {
+    if (query !== this.state.query) {
+      this.setState({ images: [], page: 1 });
+    }
     this.setState({ query });
     // console.log(query);
   };
 
   render() {
+    const { images } = this.state;
+    console.log(images);
     return (
       <>
-        <SearchForm onSubmit={this.handleSumit} />
+        <SearchForm onSubmit={this.handleSubmit} />
+        <Grid>
+          {images.map(({ id, src: { small }, alt }) => {
+            return (
+              <GridItem key={id}>
+                <CardItem>
+                  <img src={small} alt={alt} />
+                </CardItem>
+              </GridItem>
+            );
+          })}
+        </Grid>
         <Text textAlign="center">Sorry. There are no images ... 😭</Text>
       </>
     );
